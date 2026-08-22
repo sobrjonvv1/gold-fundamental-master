@@ -54,7 +54,7 @@ Telegram Bot         Telegram Mini App (Vite+React+Tailwind)
       +---------+----------+
                 |
                 v
-          FastAPI Backend (Python 3.12)
+          FastAPI Backend (Python 3.11)
                 |
        +--------+--------+
        |        |        |
@@ -139,5 +139,31 @@ python scripts/run_tests.py
 
 ---
 
-## 📄 7. Лицензия
+## 🔒 7. Production deployment (Render)
+
+The bot is started inside the FastAPI lifespan. Do not deploy `bot/bot.py` as a
+second worker: two long-polling consumers will conflict and Telegram updates
+will be lost or repeatedly retried. The supplied `render.yaml` keeps one web
+process and runs `alembic upgrade head` before Uvicorn starts.
+
+Before the first production deploy, set these **secret environment variables**
+in Render (never commit them):
+
+- `DATABASE_URL` — Render PostgreSQL URL; `postgres://` and `postgresql://`
+  are converted to `postgresql+asyncpg://` automatically.
+- `SECRET_KEY` — a new cryptographically random secret.
+- `TELEGRAM_BOT_TOKEN` — a newly rotated BotFather token.
+- `TELEGRAM_WEBAPP_URL` and `CORS_ALLOWED_ORIGINS` — the exact HTTPS Netlify
+  origin.
+
+Also set `BACKEND_URL` to the public backend HTTPS URL, `MOCK_MODE=true` for
+demo data or `false` only after live data providers have been configured. The
+application refuses an unsafe production configuration instead of silently
+starting with a local database, wildcard CORS, or a missing bot token.
+
+Use `/health` for platform liveness and `/ready` for dependency readiness.
+`/api/v1/system/status` reports `MOCK`, `OFFLINE`, or `ONLINE` truthfully; it
+does not claim that an unconfigured service is online.
+
+## 📄 8. Лицензия
 Проект распространяется под лицензией [MIT](LICENSE).
