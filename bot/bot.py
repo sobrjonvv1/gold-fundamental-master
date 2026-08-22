@@ -10,15 +10,16 @@ from aiogram.enums import ParseMode
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("gold_fundamental_bot")
 
-BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "1234567890:ABCdefGHIjklMNOpqrsTUVwxyz")
+BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 BACKEND_URL = os.getenv("BACKEND_URL", "http://backend:8000")
-WEBAPP_URL = os.getenv("TELEGRAM_WEBAPP_URL", "https://your-domain.com")
+WEBAPP_URL = os.getenv("TELEGRAM_WEBAPP_URL", "")
 
-bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
 
 def get_mini_app_keyboard() -> InlineKeyboardMarkup:
+    if not WEBAPP_URL.startswith("https://"):
+        return None
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🏛 Open Wall Street Terminal", web_app=WebAppInfo(url=WEBAPP_URL))]
     ])
@@ -65,8 +66,9 @@ async def cmd_today(message: types.Message):
                 f"<i>Data Quality: {data.get('data_quality', 'GOOD')}</i>"
             )
             await message.answer(report, parse_mode=ParseMode.HTML, reply_markup=get_mini_app_keyboard())
-        except Exception as e:
-            await message.answer(f"❌ Error fetching daily fundamental view: {str(e)}")
+        except Exception:
+            logger.exception("Unable to fetch the daily report")
+            await message.answer("❌ Analysis service is temporarily unavailable. Please try again.")
 
 
 @dp.message(Command("week"))
@@ -127,8 +129,15 @@ async def cmd_status(message: types.Message):
 
 
 async def main():
+    if not BOT_TOKEN:
+        logger.error("TELEGRAM_BOT_TOKEN is not configured; legacy bot worker will not start")
+        return
     logger.info("Starting Telegram Bot worker...")
-    await dp.start_polling(bot)
+    bot = Bot(token=BOT_TOKEN)
+    try:
+        await dp.start_polling(bot)
+    finally:
+        await bot.session.close()
 
 
 if __name__ == "__main__":
