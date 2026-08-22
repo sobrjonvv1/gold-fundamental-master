@@ -2,11 +2,14 @@ import asyncio
 import httpx
 import os
 
-token = os.getenv("TELEGRAM_BOT_TOKEN", "8847165499:AAFdKszu5b8vZk4ROR5rSxMv3K1TKOCYyrs")
+token = os.getenv("TELEGRAM_BOT_TOKEN", "")
 
 
 async def test_bot_info():
-    async with httpx.AsyncClient() as client:
+    if not token:
+        print("ERROR: TELEGRAM_BOT_TOKEN is not configured.")
+        return
+    async with httpx.AsyncClient(timeout=10.0) as client:
         resp = await client.get(f"https://api.telegram.org/bot{token}/getMe")
         if resp.status_code == 200:
             data = resp.json()
@@ -16,7 +19,7 @@ async def test_bot_info():
             print(f"Bot Name: {bot_info.get('first_name')}")
             print(f"Bot Username: @{bot_info.get('username')}")
         else:
-            print(f"ERROR: Failed to connect - {resp.text}")
+            print(f"ERROR: Telegram returned HTTP {resp.status_code}.")
 
 
 if __name__ == "__main__":
