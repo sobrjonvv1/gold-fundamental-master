@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from typing import Any, Dict, List, Literal
+
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List, Dict, Any
 from app.core.database import get_db
 from app.collectors.forex_factory import ForexFactoryProvider
 from app.collectors.mock_provider import MockFedProvider, MockMarketDataProvider, MockNewsProvider
@@ -62,8 +63,12 @@ async def get_day_horizon():
 
 
 @router.get("/session")
-async def get_session_horizon(name: str = Query("LONDON", description="Session name: ASIA, LONDON, NEW_YORK")):
-    return await engine.analyze_horizon(f"SESSION_{name.upper()}", [], [], {}, [])
+async def get_session_horizon(
+    name: Literal["ASIA", "LONDON", "NEW_YORK"] = Query(
+        "LONDON", description="Session name: ASIA, LONDON, NEW_YORK"
+    )
+):
+    return await engine.analyze_horizon(f"SESSION_{name}", [], [], {}, [])
 
 
 @router.get("/drivers")
