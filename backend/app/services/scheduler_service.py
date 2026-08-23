@@ -13,6 +13,8 @@ async def scheduled_calendar_sync():
 
 async def scheduled_session_analysis(session_name: str):
     logger.info(f"Running scheduled session fundamental analysis for: {session_name}")
+    from app.services.telegram_service import broadcast_session_report
+    await broadcast_session_report(session_name)
 
 
 def start_scheduler():
