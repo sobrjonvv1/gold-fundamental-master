@@ -165,5 +165,18 @@ Use `/health` for platform liveness and `/ready` for dependency readiness.
 `/api/v1/system/status` reports `MOCK`, `OFFLINE`, or `ONLINE` truthfully; it
 does not claim that an unconfigured service is online.
 
+### Live fundamental mode
+
+To enable the fact-based pipeline, set `MOCK_MODE=false`,
+`FOREX_FACTORY_PROVIDER=live`, `OPENROUTER_MODEL=openrouter/free`,
+`OPENROUTER_FALLBACK_MODEL=meta-llama/llama-3.2-3b-instruct:free`,
+`LLM_DAILY_REQUEST_LIMIT=45`, `DEFAULT_TIMEZONE=Asia/Tashkent`, and session
+open times `05:00`, `13:00`, `18:00` for Asia, London, and New York.
+
+Live reports attach source status and use FRED plus market data feeds and the
+Forex Factory calendar. The LLM only summarizes the fetched context. If a
+source or free model is unavailable, the report is marked degraded and its
+direction is neutral/weak rather than being replaced with fabricated facts.
+
 ## 📄 8. Лицензия
 Проект распространяется под лицензией [MIT](LICENSE).
