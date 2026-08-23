@@ -169,6 +169,18 @@ Required JSON Schema format:
 """
 
     def _get_mock_analysis(self, horizon: str, context_data: Dict[str, Any]) -> LLMAnalysisOutput:
+        # A live-data failure must never be disguised as a confident model view.
+        if not settings.MOCK_MODE:
+            return LLMAnalysisOutput(
+                bias="NEUTRAL", strength="WEAK",
+                main_driver="Live market context was collected, but the AI synthesis is temporarily unavailable.",
+                supporting_factors=[], conflicting_factors=["No validated AI synthesis available"],
+                base_scenario="No confident directional scenario is issued until the synthesis service recovers.",
+                alternative_scenario="Wait for the next verified macro release or market-data refresh.",
+                invalidation="Not applicable while the analysis is unavailable.",
+                key_risks=["Free-model availability or rate limit"],
+                next_catalyst="Next scheduled macroeconomic release", risk_level="HIGH"
+            )
         if horizon == "MONTH":
             return LLMAnalysisOutput(
                 bias="BULLISH",
