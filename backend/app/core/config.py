@@ -22,11 +22,11 @@ try:
         BACKEND_URL: Optional[str] = None
 
         OPENROUTER_API_KEY: str = ""
-        OPENROUTER_MODEL: str = "google/gemini-2.0-flash-001"
-        OPENROUTER_FALLBACK_MODEL: str = "meta-llama/llama-3.3-70b-instruct"
-        LLM_DAILY_REQUEST_LIMIT: int = 100
+        OPENROUTER_MODEL: str = "openrouter/free"
+        OPENROUTER_FALLBACK_MODEL: str = "meta-llama/llama-3.2-3b-instruct:free"
+        LLM_DAILY_REQUEST_LIMIT: int = 45
 
-        FOREX_FACTORY_PROVIDER: str = "mock"
+        FOREX_FACTORY_PROVIDER: str = "live"
         FOREX_FACTORY_API_KEY: str = ""
         FED_PROVIDER: str = "mock"
         FED_API_KEY: str = ""
@@ -35,10 +35,10 @@ try:
         NEWS_PROVIDER: str = "mock"
         NEWS_API_KEY: str = ""
 
-        SESSION_ASIA_OPEN: str = "00:00"
-        SESSION_LONDON_OPEN: str = "08:00"
-        SESSION_NEW_YORK_OPEN: str = "13:00"
-        DEFAULT_TIMEZONE: str = "UTC"
+        SESSION_ASIA_OPEN: str = "05:00"
+        SESSION_LONDON_OPEN: str = "13:00"
+        SESSION_NEW_YORK_OPEN: str = "18:00"
+        DEFAULT_TIMEZONE: str = "Asia/Tashkent"
         CORS_ALLOWED_ORIGINS: str = "http://localhost:5173,http://localhost:3000"
         RATE_LIMIT_PER_MINUTE: int = 120
         TRUST_PROXY_HEADERS: bool = False
