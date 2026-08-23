@@ -3,8 +3,7 @@ from typing import Any, Dict, List, Literal
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
-from app.collectors.forex_factory import ForexFactoryProvider
-from app.collectors.mock_provider import MockFedProvider, MockMarketDataProvider, MockNewsProvider
+from app.collectors.live_context import collect_context
 from app.engine.fundamental_engine import FundamentalEngine
 
 router = APIRouter(prefix="/gold", tags=["Gold Fundamentals"])
@@ -16,15 +15,7 @@ async def get_current_gold_fundamental(db: AsyncSession = Depends(get_db)):
     """
     Returns current main fundamental overview for XAUUSD across all 4 horizons.
     """
-    ff_provider = ForexFactoryProvider()
-    fed_provider = MockFedProvider()
-    market_provider = MockMarketDataProvider()
-    news_provider = MockNewsProvider()
-
-    events = await ff_provider.fetch_events(None, None)
-    fed_events = await fed_provider.fetch_fed_events()
-    market_obs = await market_provider.fetch_market_observations()
-    news = await news_provider.fetch_latest_news()
+    events, fed_events, market_obs, news, quality, sources = await collect_context()
 
     # Analyze DAY horizon as default current view
     day_view = await engine.analyze_horizon("DAY", events, fed_events, market_obs, news)
@@ -43,23 +34,27 @@ async def get_current_gold_fundamental(db: AsyncSession = Depends(get_db)):
         "horizons": horizons_summary,
         "current_view": day_view,
         "drivers_summary": day_view["drivers_summary"],
-        "data_quality": "GOOD"
+        "data_quality": quality,
+        "sources": sources,
     }
 
 
 @router.get("/month")
 async def get_month_horizon():
-    return await engine.analyze_horizon("MONTH", [], [], {}, [])
+    events, fed_events, market_obs, news, _, _ = await collect_context()
+    return await engine.analyze_horizon("MONTH", events, fed_events, market_obs, news)
 
 
 @router.get("/week")
 async def get_week_horizon():
-    return await engine.analyze_horizon("WEEK", [], [], {}, [])
+    events, fed_events, market_obs, news, _, _ = await collect_context()
+    return await engine.analyze_horizon("WEEK", events, fed_events, market_obs, news)
 
 
 @router.get("/day")
 async def get_day_horizon():
-    return await engine.analyze_horizon("DAY", [], [], {}, [])
+    events, fed_events, market_obs, news, _, _ = await collect_context()
+    return await engine.analyze_horizon("DAY", events, fed_events, market_obs, news)
 
 
 @router.get("/session")
@@ -68,7 +63,8 @@ async def get_session_horizon(
         "LONDON", description="Session name: ASIA, LONDON, NEW_YORK"
     )
 ):
-    return await engine.analyze_horizon(f"SESSION_{name}", [], [], {}, [])
+    events, fed_events, market_obs, news, _, _ = await collect_context()
+    return await engine.analyze_horizon(f"SESSION_{name}", events, fed_events, market_obs, news)
 
 
 @router.get("/drivers")
