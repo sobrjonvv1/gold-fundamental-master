@@ -21,7 +21,7 @@ class ForexFactoryProvider(BaseEconomicCalendarProvider):
             logger.info("Using Mock Forex Factory provider (MOCK_MODE=True)")
             return await self.mock_fallback.fetch_events(start_time, end_time)
 
-        # Attempt to scrape/fetch from configured external URL or API
+        # Attempt to fetch the public Forex Factory calendar.
         try:
             async with httpx.AsyncClient(timeout=10.0) as client:
                 response = await client.get(
@@ -31,19 +31,17 @@ class ForexFactoryProvider(BaseEconomicCalendarProvider):
                 if response.status_code == 200:
                     raw_data = response.json()
                     events = self._parse_ff_json(raw_data, start_time, end_time)
-                    # Cache in Redis
                     try:
                         redis = await get_redis()
                         await redis.set(self.cache_key, json.dumps(events), ex=3600)
                     except Exception as re:
                         logger.warning(f"Failed to cache Forex Factory events in Redis: {re}")
                     return events
-                else:
-                    logger.error(f"Forex Factory API returned HTTP status {response.status_code}")
+                logger.error(f"Forex Factory API returned HTTP status {response.status_code}")
         except Exception as e:
-            logger.error(f"Error fetching Forex Factory calendar data: {e}. Falling back to cache/mock.")
+            logger.error(f"Error fetching Forex Factory calendar data: {e}. Falling back to cache only.")
 
-        # Fallback 1: Try Redis Cache
+        # A recent cache is still factual. In live mode, never replace it with synthetic events.
         try:
             redis = await get_redis()
             cached = await redis.get(self.cache_key)
@@ -53,9 +51,8 @@ class ForexFactoryProvider(BaseEconomicCalendarProvider):
         except Exception as ce:
             logger.warning(f"Error reading Redis cache: {ce}")
 
-        # Fallback 2: Mock provider
-        logger.info("Falling back to Mock Economic Calendar provider")
-        return await self.mock_fallback.fetch_events(start_time, end_time)
+        logger.warning("No live Forex Factory events or cache are available; returning no events")
+        return []
 
     def _parse_ff_json(self, raw_events: List[Dict[str, Any]], start_time: datetime, end_time: datetime) -> List[Dict[str, Any]]:
         parsed = []
@@ -63,19 +60,16 @@ class ForexFactoryProvider(BaseEconomicCalendarProvider):
             try:
                 currency = item.get("country", "")
                 if currency != "USD":
-                    continue # Focus on USD macro events for Gold
-                
-                impact = item.get("impact", "LOW").upper()
+                    continue
+
                 event_name = item.get("title", "Economic Event")
-                event_time_str = item.get("date", "")
-                
                 parsed.append({
                     "event_name": event_name,
                     "event_type": self._classify_event_type(event_name),
                     "currency": currency,
                     "country": "US",
-                    "event_time": event_time_str,
-                    "impact": impact,
+                    "event_time": item.get("date", ""),
+                    "impact": item.get("impact", "LOW").upper(),
                     "actual": item.get("actual", ""),
                     "forecast": item.get("forecast", ""),
                     "previous": item.get("previous", ""),
@@ -93,10 +87,10 @@ class ForexFactoryProvider(BaseEconomicCalendarProvider):
         t = title.lower()
         if "cpi" in t or "pce" in t or "ppi" in t or "inflation" in t:
             return "INFLATION"
-        elif "payrolls" in t or "nfp" in t or "unemployment" in t or "jobless" in t:
+        if "payrolls" in t or "nfp" in t or "unemployment" in t or "jobless" in t:
             return "EMPLOYMENT"
-        elif "gdp" in t or "pmi" in t or "ism" in t or "retail sales" in t:
+        if "gdp" in t or "pmi" in t or "ism" in t or "retail sales" in t:
             return "GROWTH"
-        elif "fed" in t or "fomc" in t or "powell" in t:
+        if "fed" in t or "fomc" in t or "powell" in t:
             return "FED"
         return "MACRO"
