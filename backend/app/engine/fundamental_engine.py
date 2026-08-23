@@ -6,6 +6,7 @@ from app.engine.usd_engine import USDEngine
 from app.engine.yield_engine import YieldEngine
 from app.engine.openrouter_client import OpenRouterClient
 from app.schemas.llm import LLMAnalysisOutput
+from app.core.config import settings
 
 logger = logging.getLogger("gold_fundamental.engine")
 
@@ -77,7 +78,7 @@ class FundamentalEngine:
             "invalidation": llm_output.invalidation,
             "key_risks": llm_output.key_risks,
             "next_catalyst": llm_output.next_catalyst,
-            "data_quality": "GOOD",
+            "data_quality": "MOCK" if settings.MOCK_MODE else "LIVE",
             "drivers_summary": {
                 "USD": usd_eval["usd_state"],
                 "FED": fed_stance,
